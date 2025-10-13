@@ -1,4 +1,4 @@
-# app.py (Updated)
+# app.py (Updated with Authentication, Email Integration, and Dark Theme Styling)
 
 import streamlit as st
 import pandas as pd
@@ -8,20 +8,146 @@ import tempfile
 import os
 from contract_analyzer import analyze_contract_file
 from pdf_generator import generate_rewritten_pdf
-
-st.set_page_config(
-    page_title="AI-Powered Compliance Dashboard",
-    page_icon="⚖️",
-    layout="wide"
+from auth_manager import (
+    initialize_auth_session, 
+    is_authenticated, 
+    show_login_form, 
+    show_user_info,
+    get_current_user
 )
+from email_notifier import email_notifier
+
+def apply_custom_styling():
+    st.markdown("""
+    <style>
+    /* Main app styling to match dark professional theme */
+    .stApp {
+        background-color: #1a1a2e;
+        color: #ffffff;
+    }
+    
+    /* Header styling */
+    .main-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 1px solid #2d3748;
+    }
+    
+    /* Success/completion indicators */
+    .success-indicator {
+        background-color: #065f46;
+        border: 2px solid #10b981;
+        border-radius: 8px;
+        padding: 1rem;
+        color: #ffffff;
+    }
+    
+    /* Warning indicators */
+    .warning-indicator {
+        background-color: #92400e;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        padding: 1rem;
+        color: #ffffff;
+    }
+    
+    /* Info boxes */
+    .info-box {
+        background-color: #1e3a8a;
+        border: 2px solid #3b82f6;
+        border-radius: 8px;
+        padding: 1rem;
+        color: #ffffff;
+    }
+    
+    /* Metric cards */
+    .metric-card {
+        background-color: #374151;
+        border: 1px solid #4b5563;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    /* File upload area */
+    .upload-area {
+        background-color: #374151;
+        border: 2px dashed #10b981;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin: 1rem 0;
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background-color: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+    }
+    
+    .stButton > button:hover {
+        background-color: #059669;
+        border: none;
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #374151;
+        border-radius: 8px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        color: #d1d5db;
+        background-color: transparent;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #10b981;
+        color: white;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background-color: #111827;
+    }
+    
+    /* Text input styling */
+    .stTextInput > div > div > input {
+        background-color: #374151;
+        color: white;
+        border: 1px solid #4b5563;
+        border-radius: 6px;
+    }
+    
+    /* Dataframe styling */
+    .stDataFrame {
+        background-color: #374151;
+    }
+    
+    /* Progress bar */
+    .stProgress > div > div > div {
+        background-color: #10b981;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 def initialize_session_state():
+    initialize_auth_session()
+    
     if 'analysis_complete' not in st.session_state:
         st.session_state.analysis_complete = False
     if 'analysis_results' not in st.session_state:
         st.session_state.analysis_results = None
     if 'contract_name' not in st.session_state:
         st.session_state.contract_name = ""
+    if 'email_sent' not in st.session_state:
+        st.session_state.email_sent = False
 
 def analyze_contract(uploaded_file):
     try:
@@ -33,6 +159,21 @@ def analyze_contract(uploaded_file):
         os.unlink(tmp_file_path)
         if analysis_results:
             st.success("Analysis complete!")
+            
+            try:
+                with st.spinner("Sending email notifications..."):
+                    email_success = email_notifier.send_analysis_notification(
+                        analysis_results, 
+                        uploaded_file.name
+                    )
+                    if email_success:
+                        st.success(" Email notifications sent to compliance team!")
+                        st.session_state.email_sent = True
+                    else:
+                        st.warning(" Analysis complete but email notifications failed to send")
+            except Exception as e:
+                st.warning(f" Analysis complete but email error: {str(e)}")
+            
             return analysis_results
         else:
             st.error("Failed to analyze contract")
@@ -52,8 +193,13 @@ def create_dashboard(results):
             x=risk_counts.index,
             y=risk_counts.values,
             color=risk_counts.index,
-            color_discrete_map={'High': '#ff4444', 'Medium': '#ffaa00', 'Low': '#44ff44'},
+            color_discrete_map={'High': '#ef4444', 'Medium': '#f59e0b', 'Low': '#10b981'},
             title="Risk Level Distribution"
+        )
+        fig_risk.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color='white'
         )
         st.plotly_chart(fig_risk, use_container_width=True)
     with col2:
@@ -65,10 +211,16 @@ def create_dashboard(results):
             labels=['Compliant', 'Non-Compliant'],
             values=[compliant, non_compliant],
             hole=0.3,
-            marker_colors=['#44ff44', '#ff4444']
+            marker_colors=['#10b981', '#ef4444']
         )])
-        fig_compliance.update_layout(title="Compliance Ratio")
+        fig_compliance.update_layout(
+            title="Compliance Ratio",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font_color='white'
+        )
         st.plotly_chart(fig_compliance, use_container_width=True)
+    
     st.subheader("Quick Stats")
     compliant_percentage = (compliant / total_clauses) * 100 if total_clauses > 0 else 0
     high_risk_count = len([r for r in results if r['risk_level'] == 'High'])
@@ -96,6 +248,23 @@ def create_dashboard(results):
 
 def create_summary_insights(results):
     st.header("📋 Summary & Insights")
+    
+    if st.session_state.get('email_sent', False):
+        st.markdown("""
+        <div class="success-indicator">
+            <h4>📧 Email Notifications Sent</h4>
+            <p>Analysis summary has been sent to the compliance team</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        recipients = email_notifier.get_notification_recipients()
+        if recipients:
+            st.markdown(f"""
+            <div class="info-box">
+                <strong>Notified:</strong> {', '.join(recipients)}
+            </div>
+            """, unsafe_allow_html=True)
+    
     st.subheader("Contract Summary")
     st.write("This contract covers data handling, security controls, encryption, and liability.")
     gdpr_issues = len([r for r in results if 'GDPR' in r.get('regulation', '')])
@@ -173,12 +342,67 @@ def create_summary_insights(results):
                 file_name="ai_rewritten_clauses_report.pdf",
                 mime="application/pdf",
             )
-   
+
+def show_email_settings():
+    """Show email notification settings in sidebar"""
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📧 Email Notifications")
+    
+    if email_notifier.is_enabled():
+        st.sidebar.success("✅ Email system active")
+        recipients = email_notifier.get_notification_recipients()
+        st.sidebar.write("**Recipients:**")
+        for email in recipients:
+            st.sidebar.write(f"• {email}")
+        
+        if st.sidebar.button("Send Test Email"):
+            with st.spinner("Sending test email..."):
+                success, message = email_notifier.send_test_email()
+                if success:
+                    st.sidebar.success(message)
+                else:
+                    st.sidebar.error(message)
+    else:
+        st.sidebar.warning("⚠️ Email notifications disabled")
+        st.sidebar.write("Configure EMAIL_USER and EMAIL_PASSWORD in .env file")
 
 def main():
+    apply_custom_styling()  # Apply custom styling at start
     initialize_session_state()
-    st.title("⚖️ AI-Powered Compliance Dashboard ⚖️")
+    
+    if not is_authenticated():
+        show_login_form()
+        return
+    
+    show_user_info()
+    show_email_settings()
+    
+    current_user = get_current_user()
+    
+    st.markdown("""
+    <div class="main-header">
+        <h1 style="margin: 0; color: #ffffff; font-size: 2.5rem;">⚖️ AI-Powered Compliance Dashboard</h1>
+        <p style="margin: 0.5rem 0 0 0; color: #d1d5db; font-size: 1.1rem;">Advanced contract analysis with AI-powered risk assessment</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if current_user['is_temp']:
+        st.markdown(f"""
+        <div class="info-box">
+            <h4>🚀 Temporary Session Active</h4>
+            <p>Welcome {current_user['email']}! You have access to contract analysis features.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="success-indicator">
+            <h4>✅ Full Access Granted</h4>
+            <p>Welcome back, {current_user['name']}! You have access to all features.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.write("Upload your contract • Analyze • View results in an elegant dashboard")
+    
     if not st.session_state.analysis_complete:
         st.markdown("---")
         st.subheader("📁 Upload a Contract")
@@ -191,15 +415,13 @@ def main():
             st.success(f"✅ Uploaded: {uploaded_file.name}")
             st.session_state.contract_name = uploaded_file.name
             if st.button("🔍 Submit for Analysis", type="primary"):
-                with st.spinner("Analyzing contract... This may take a few minutes."):
-                    results = analyze_contract(uploaded_file)
-                    if results:
-                        st.session_state.analysis_results = results
-                        st.session_state.analysis_complete = True
-                        st.success("✅ Contract analyzed successfully!")
-                        st.rerun()
+                results = analyze_contract(uploaded_file)
+                if results:
+                    st.session_state.analysis_results = results
+                    st.session_state.analysis_complete = True
+                    st.rerun()
     if st.session_state.analysis_complete and st.session_state.analysis_results:
-        st.success("✅ Contract analyzed successfully!")
+        st.success("Contract analyzed successfully!")
         tab1, tab2 = st.tabs(["📊 Dashboard", "📋 Summary & Insights"])
         with tab1:
             create_dashboard(st.session_state.analysis_results)
@@ -210,6 +432,7 @@ def main():
             st.session_state.analysis_complete = False
             st.session_state.analysis_results = None
             st.session_state.contract_name = ""
+            st.session_state.email_sent = False
             st.rerun()
 
 if __name__ == "__main__":
