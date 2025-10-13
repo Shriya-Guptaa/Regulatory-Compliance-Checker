@@ -1,28 +1,27 @@
 # Core packages
-pandas
-requests
-python-dotenv
+pandas==2.3.1
+requests==2.32.4
+python-dotenv==1.1.0
 
 # PDF / DOCX processing
-pypdf
-python-docx
-pygsheets
-reportlab
+pypdf==4.2.0
+python-docx==1.2.0
+pygsheets==2.0.6
+reportlab==4.4.3
 
 # LLM / embeddings / LangChain
-langchain
-langchain-huggingface
-langchain-experimental
-sentence-transformers
-transformers
-torch
-accelerate
+langchain==0.3.25
+langchain-huggingface==0.3.1
+langchain-experimental==0.3.4
+sentence-transformers==5.1.0
+transformers==4.55.2
+torch==2.3.1
 
 # Groq integration
-groq
+groq==0.31.0
 
 # Web / Dashboard
-streamlit
-plotly
+streamlit==1.48.0
+plotly==6.3.0
 # Email-notification 
-yagmail
+yagmail==0.15.293
