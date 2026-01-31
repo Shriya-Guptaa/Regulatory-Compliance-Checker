@@ -1,3 +1,7 @@
+#numpy,pytorch needs to be installed for transformers to run. Install a compatible version.
+#Python 3.12 and below need to be installed for installation of sentence tranformers and transformers
+#Tranformer == 4.x needs numpy==1.x , torch==2.x
+
 # Core packages
 pandas==2.3.1
 requests==2.32.4
@@ -14,7 +18,7 @@ langchain==0.3.25
 langchain-huggingface==0.3.1
 langchain-experimental==0.3.4
 sentence-transformers==5.1.0
-transformers==4.55.2
+transformers==4.55.2     
 torch==2.3.1
 
 # Groq integration
