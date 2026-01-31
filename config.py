@@ -13,12 +13,12 @@ MODEL_CONFIG = {
     },
     "groq_fallback_1": {
         "provider": "groq",
-        "model_id": "llama3-70b-8192", 
+        "model_id": "llama3-70b-8192",  #deprecated, change the model
         "client": Groq(api_key=os.getenv("GROQ_API_KEY"))
     },
     "groq_fallback_2": {
         "provider": "groq",
-        "model_id": "gemma-7b-it", 
+        "model_id": "gemma-7b-it", #deprecated, change the model
         "client": Groq(api_key=os.getenv("GROQ_API_KEY"))
     },
     "github_fallback": {
@@ -34,4 +34,5 @@ MODEL_PREFERENCE_ORDER = [
     "groq_fallback_1", 
     "groq_fallback_2", 
     "github_fallback"
+
 ]
