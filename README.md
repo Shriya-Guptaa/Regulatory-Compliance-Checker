@@ -1,6 +1,6 @@
 # AI Powered Regulatory Compliance Checker for Contracts
 
-This project aims to build an AI-driven platform that automatically analyzes contracts and verifies their compliance against applicable laws, regulations, and policies. By leveraging Advanced Large Language Models (LLMs) and LangChain frameworks the system helps businesses, legal teams, and compliance officers reduce manual effort, minimize risks, and ensure adherence to evolving regulations.
+This project aims to build an AI-driven platform that automatically analyzes contracts and verifies their compliance against GDPR,HIPAA. By leveraging Advanced Large Language Models (LLMs) and LangChain frameworks the system helps businesses, legal teams, and compliance officers reduce manual effort, minimize risks, and ensure adherence to evolving regulations.
 
 ---
 ## 🎯 Key Features
